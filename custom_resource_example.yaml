@@ -1,0 +1,8 @@
+apiVersion: "baz.qux/v1"
+kind: Operator
+metadata:
+  name: my-op
+  namespace: default
+spec:
+  bar: "bar"
+  foo: "foo"
