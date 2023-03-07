@@ -1,0 +1,49 @@
+name: build example image
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ main ]
+    types: [ closed ]
+    paths-ignore:
+      - .github/**
+      - .gitignore
+      - README.md
+env:
+  CONTAINER_REGISTRY_URL: ghcr.io
+  CONTAINER_REGISTRY: rubernetes
+  REPO_NAME: example
+concurrency: prod_deploy
+jobs:
+  build:
+    if: ${{ github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v2
+        with:
+          ref: main
+
+      - name: Set outputs
+        id: vars
+        run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+
+      - name: Login to Container Registry
+        id: login-to-gh-cr
+        run: docker login -u ${{ secrets.REPO_ACCESS_TOKEN }} -p ${{ secrets.REPO_ACCESS_TOKEN }} ${{ env.CONTAINER_REGISTRY_URL }}
+
+      - name: build image
+        id: build-image
+        run: docker build -t ${{ env.CONTAINER_REGISTRY_URL }}/${{ env.CONTAINER_REGISTRY }}/${{ env.REPO_NAME }}:latest -t ${{ env.CONTAINER_REGISTRY_URL }}/${{ env.CONTAINER_REGISTRY }}/${{ env.REPO_NAME }}:ex-${{ steps.vars.outputs.sha_short }} .
+
+      - name: push image
+        id: push-image
+        run: docker push --all-tags ${{ env.CONTAINER_REGISTRY_URL }}/${{ env.CONTAINER_REGISTRY }}/${{ env.REPO_NAME }}
+        
+      - name: repository dispatch
+        id: repository-dispatch
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          token: ${{ secrets.REPO_ACCESS_TOKEN }}
+          repository: rubernetes/example
+          event-type: release_example_image
+          client-payload: '{"image_tag": "ex-${{ steps.vars.outputs.sha_short }}"}'
