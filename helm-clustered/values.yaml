@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/rubernetes/example
   pullPolicy: IfNotPresent
-  tag: ex-7ebeb5b
+  tag: ex-594bb9a
 
 imagePullSecrets: []
 nameOverride: ""
